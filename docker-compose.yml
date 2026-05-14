@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  git-mirror:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: planbridge-git-mirror
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - ORACLE_URL=${ORACLE_URL}
+      - ORACLE_USER=${ORACLE_USER}
+      - ORACLE_PASSWORD=${ORACLE_PASSWORD}
+      - REPOS_BASE_PATH=/repos
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-300000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - git-repos:/repos
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', r => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  git-repos:
+    name: planbridge-git-repos
